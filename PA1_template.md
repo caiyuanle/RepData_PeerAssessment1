@@ -30,7 +30,8 @@ locates, the following actions are performed:
     - Basically 0s are padded to the left of the original value, so "0" -> "0000" 
    which means 00:00, and "855" -> "0855" which means 08:55. If the original values
    are already 4 digits, they are not changed, like "1010" -> "1010".  
-```{r echo=TRUE}
+
+```r
 unzip("activity.zip")
 unzippedFileName <- list.files(pattern = ".csv")
 data <- read.csv(unzippedFileName, stringsAsFactors = FALSE)
@@ -41,20 +42,33 @@ data$interval <- sapply(data$interval, function(i) sprintf("%04d",i))
 In this analysis, all the **NA** values are removed from the data.  
 
 The following chart is a histogram of the total number of steps taken each day.
-```{r echo=TRUE}
+
+```r
 totalNumberOfStepsByDay <- with(data, tapply(steps, date, sum, na.rm = T))
 hist(totalNumberOfStepsByDay, col = "red", 
     main = "Total Number of Steps By Day", xlab = "Total number of steps")
 ```
 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png) 
+
 The **mean** of the number of steps taken per day is:
-```{r echo=TRUE}
+
+```r
 mean(totalNumberOfStepsByDay)
 ```
 
+```
+## [1] 9354.23
+```
+
 The **median** of the number of steps taken per day is:
-```{r echo=TRUE}
+
+```r
 median(totalNumberOfStepsByDay)
+```
+
+```
+## [1] 10395
 ```
 
 ## What is the average daily activity pattern?
@@ -62,7 +76,8 @@ In this analysis, all the **NA** values are removed from the data.
 
 The following chart shows the 5-minute interval (x-axis) and the average number
 of steps taken averaged across all days (y-axis).
-```{r echo=TRUE}
+
+```r
 averageNumberOfStepsByInterval <- with(data, tapply(steps, interval, mean, na.rm = T))
 # To make the plot() function respect the type parameter, 
 # the x-axis values cannot be of type factor.
@@ -73,51 +88,78 @@ plot(plotData$interval, plotData$mean, type = "l",
      xlab = "Interval", ylab = "Average Number of Steps")
 ```
 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png) 
+
 The following 5-minute interval contains the maximum number of steps, on average
 across all the days:
-```{r echo=TRUE}
+
+```r
 maxNumberOfSteps <- max(plotData$mean)
 maxData <- subset(plotData, mean == maxNumberOfSteps)
 maxData$interval
 ```
 
+```
+## [1] "0835"
+```
+
 ## Imputing missing values
 The total number of missing values in the dataset is:
-```{r echo=TRUE}
+
+```r
 sum(is.na(data))
+```
+
+```
+## [1] 2304
 ```
 
 To avoid possible bias in the analysis, the missing values in the dataset are 
 replaced by the average value of that interval across all the days in the dataset.
-```{r echo=TRUE}
+
+```r
 filledStepsData <- apply(data, 1, 
     function(x) x[1] <- ifelse(is.na(x[1]), subset(plotData, interval == x[3])$mean, x[1]))
 ```
 
 A new data set is created with the missing data filled in the orignal data and 
 is stored in **newData** variable.
-```{r echo=TRUE}
+
+```r
 newData <- data
 newData$steps <- as.numeric(filledStepsData)
 ```
 
 The following chart is a histogram of the total number of steps taken each day,
 for the new data set.
-```{r echo=TRUE}
+
+```r
 totalNumberOfStepsByDayNew <- with(newData, tapply(steps, date, sum, na.rm = T))
 hist(totalNumberOfStepsByDayNew, col = "green", 
     main = "Total Number of Steps By Day \n Missing Data Filled", 
     xlab = "Total number of Steps By Day")
 ```
 
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10-1.png) 
+
 The **mean** of the number of steps taken per day for the new data set is:
-```{r echo=TRUE}
+
+```r
 mean(totalNumberOfStepsByDayNew)
 ```
 
+```
+## [1] 10766.19
+```
+
 The **median** of the number of steps taken per day for the new data set is:
-```{r echo=TRUE}
+
+```r
 median(totalNumberOfStepsByDayNew)
+```
+
+```
+## [1] 10766.19
 ```
 
 From the analysis, it is clear that:  
@@ -130,7 +172,8 @@ In this analysis, the new data set with no missing values are used.
 The first thing is to create a new column **IsWeekday** with two levels 
 ("weekday" and "weekend") so that the data can be conditioned based on this 
 column later.
-```{r echo=TRUE}
+
+```r
 newFactor <- sapply(
     newData$date, 
     function(d) ifelse((weekdays(as.Date(d)) == "Saturday" | weekdays(as.Date(d)) == "Sunday"), "weekend", "weekday"))
@@ -139,7 +182,8 @@ newData$IsWeekday <- newFactor
 
 The new data set is then grouped on IsWeekday and interval columns, and the 
 average of the steps on each group is calculated.  
-```{r echo=TRUE, message=FALSE,warning=FALSE}
+
+```r
 library(dplyr)
 groupedData <- group_by(newData, IsWeekday, interval)
 summarziedData <- summarise(groupedData, steps = mean(steps))
@@ -149,13 +193,16 @@ Then a panel plot with the 5-minute interval (x-axis) and the average number of
 steps taken averaged across all weekdays or weekend days (y-axis) is created.  
   - xyplot in lattice plotting system is used here since it fits the conditioning
   plotting perfectly.
-```{r echo=TRUE}
+
+```r
 library(lattice)
 xyplot(steps ~ interval | IsWeekday , data=summarziedData, 
        main="Average Number of Steps Taken By Interval \n Weekdays v.s. weekend", 
        xlab="Interval",  ylab="Average Number of Steps",
        layout=c(1,2), type="l", xlim = c(0,2400))
 ```
+
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-1.png) 
 
 From the chart, it is clear that:  
   - During the weekday, **around 08:35 is the peak activity time**, and the rest of 
